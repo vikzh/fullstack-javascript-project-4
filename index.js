@@ -1,13 +1,16 @@
 import axios from 'axios';
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
+
+let bodyResponse;
+
 const getPageData = (url) =>
   axios.get(url)
     .then((response) =>
       response.data);
 
 const writeDataToFile = (data, name = 'index.html') => {
-  fs.writeFile(`./_files/${name}`, data);
+  fs.writeFile(name === 'index.html' ? `./${name}` : `./_files/${name}`, data);
 }
 
 const saveSource = (url, fileName, dir) => {
@@ -17,20 +20,32 @@ const saveSource = (url, fileName, dir) => {
     });
 }
 
-const saveImages = (data) => {
+const saveImages = (data, url) => {
   const $ = cheerio.load(data);
   const imgTags = $('img');
   for(const imgTag of imgTags) {
     const regexp = /([^\/]+$)/g;
     const [[fileName]] = [...imgTag.attribs.src.matchAll(regexp)];
 
-    saveSource(imgTag.attribs.src, fileName)
+    saveSource(new URL(imgTag.attribs.src, (new URL(url)).origin), fileName)
     imgTag.attribs.src = `./_files/${fileName}`;
   }
 
-  console.log(imgTags);
-  return data;
+  return $.html();
 }
+
+const saveLinks = (data, url) => {
+  const $ = cheerio.load(data);
+  const linkTags = $('link');
+  for (const link of linkTags) {
+    const regexp = /([^\/]+$)/g;
+    const [[fileName]] = [...imgTag.attribs.src.matchAll(regexp)];
+
+    saveSource(URL(imgTag.attribs.src), fileName)
+    imgTag.attribs.src = `./_files/${fileName}`;
+  }
+}
+
 const savePage = (url) =>
   getPageData(url)
     .then(data => {
@@ -38,7 +53,7 @@ const savePage = (url) =>
 
       return data;
     })
-    .then(saveImages)
-    .then(writeDataToFile)
+    .then(data => saveImages(data, url))
+    .then(data => writeDataToFile(data))
 
 export default savePage;
