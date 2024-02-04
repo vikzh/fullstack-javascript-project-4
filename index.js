@@ -37,13 +37,15 @@ const saveImages = (data, url) => {
 const saveLinks = (data, url) => {
   const $ = cheerio.load(data);
   const linkTags = $('link');
-  for (const link of linkTags) {
+  for (const linkTag of linkTags) {
     const regexp = /([^\/]+$)/g;
-    const [[fileName]] = [...imgTag.attribs.src.matchAll(regexp)];
+    const [[fileName]] = [...linkTag.attribs.href.matchAll(regexp)];
 
-    saveSource(URL(imgTag.attribs.src), fileName)
-    imgTag.attribs.src = `./_files/${fileName}`;
+    saveSource(new URL(linkTag.attribs.href, (new URL(url)).origin), fileName);
+    linkTag.attribs.href = `./_files/${fileName}`;
   }
+
+  return $.html();
 }
 
 const savePage = (url) =>
@@ -54,6 +56,7 @@ const savePage = (url) =>
       return data;
     })
     .then(data => saveImages(data, url))
+    .then(data => saveLinks(data, url))
     .then(data => writeDataToFile(data))
 
 export default savePage;

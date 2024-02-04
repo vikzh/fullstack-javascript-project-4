@@ -12,9 +12,11 @@ const __dirname = dirname(__filename);
 
 const getFixturePath = (name) => path.join(__dirname, '..','__tests__', '__fixtures__', name);
 
-const websiteHtmlFile = 'images.html';
-const websiteHtmlSavedFile = 'images_expected.html'
-const imageFileName = 'mozila-logo.png'
+const websiteHtmlFile = 'sources.html';
+const websiteHtmlSavedFile = 'sources_expected.html';
+const absoluteFileName = 'menu.css';
+const relativeFileName = 'application.css';
+
 
 const bodyResponse = await fs.readFile(getFixturePath(websiteHtmlFile), 'utf-8');
 const expected = await fs.readFile(getFixturePath(websiteHtmlSavedFile), 'utf-8');
@@ -24,10 +26,16 @@ test('works with async/await', async () => {
     .get('/')
     .reply(200, bodyResponse);
 
-  const pngImage = await fs.readFile(getFixturePath(imageFileName));
+  const absoluteFileData = await fs.readFile(getFixturePath(absoluteFileName));
+  const relativeFileData = await fs.readFile(getFixturePath(relativeFileName));
+
   nock('http://test.com')
-    .get('/imagename.png')
-    .reply(200, pngImage, { 'Content-Type': 'image/png' });
+    .get('/assets/application.css')
+    .reply(200, relativeFileData);
+
+  nock('http://test.com')
+    .get('/assets/menu.css')
+    .reply(200, absoluteFileData);
 
   const result = await savePage('http://test.com');
   const data = await fs.readFile('./index.html');
